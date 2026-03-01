@@ -1,0 +1,827 @@
+var unlockedRaceNames = [];
+var savedUnlockedRaces = [];
+var bestLevel = 0;
+var lastRunLevel = 0;
+var lastRunKills = 0;
+
+var SelectScene = new Phaser.Class({
+    Extends: Phaser.Scene,
+
+    initialize: function SelectScene() {
+        Phaser.Scene.call(this, { key: 'SelectScene' });
+    },
+
+    create: function() {
+        this.cameras.main.setBackgroundColor('#0a0a1a');
+
+        var commonRaces = [
+            { name: 'Human', size: 'average', strMod: 0, agiMod: 0, endMod: 0, intMod: 0, passive: 'Adaptable: Broader skill development', color: '#cccccc', tier: 'common' },
+            { name: 'High Elf', size: 'average', strMod: -1, agiMod: 1, endMod: -1, intMod: 4, passive: 'Arcane Blood: Higher magic affinity', color: '#aaddff', tier: 'common' },
+            { name: 'Wood Elf', size: 'small', strMod: -2, agiMod: 3, endMod: -1, intMod: 2, passive: 'Forest Walk: Concealment in forests', color: '#88cc66', tier: 'common' },
+            { name: 'Hill Dwarf', size: 'small', strMod: 2, agiMod: -2, endMod: 3, intMod: -1, passive: 'Stout: Cheaper stamina for crafting', color: '#cc8844', tier: 'common' },
+            { name: 'Mountain Dwarf', size: 'small', strMod: 3, agiMod: -2, endMod: 2, intMod: -1, passive: 'Stone Blood: Cheaper mining stamina', color: '#aa7733', tier: 'common' },
+            { name: 'Kobold', size: 'small', strMod: -2, agiMod: 3, endMod: -1, intMod: 0, passive: 'Dark Vision: See in darkness', color: '#ddaa44', tier: 'common' },
+            { name: 'Gnome', size: 'small', strMod: -3, agiMod: 2, endMod: -1, intMod: 4, passive: 'Tinker: Bonus to crafting', color: '#ee8866', tier: 'common' }
+        ];
+
+        var uncommonRaces = [
+            { name: 'Wood Sprite', size: 'tiny', strMod: -4, agiMod: 5, endMod: -3, intMod: 3, passive: 'Fey Cloak: Forest concealment', color: '#44ff88', tier: 'uncommon' },
+            { name: 'Troll', size: 'large', strMod: 5, agiMod: -3, endMod: 4, intMod: -4, passive: 'Regeneration: Slowly recover HP', color: '#55aa55', tier: 'uncommon' },
+            { name: 'Bugbear', size: 'large', strMod: 4, agiMod: -2, endMod: 3, intMod: -3, passive: 'Brute Force: Bonus melee damage', color: '#886644', tier: 'uncommon' },
+            { name: 'Celestial Pixie', size: 'tiny', strMod: -5, agiMod: 6, endMod: -4, intMod: 5, passive: 'Fey Light: Glow in darkness', color: '#ffaaff', tier: 'uncommon' },
+            { name: 'Ghast', size: 'average', strMod: 2, agiMod: 1, endMod: -2, intMod: 1, passive: 'Undying: Resist first killing blow', color: '#aaaacc', tier: 'uncommon' },
+            { name: 'Undine', size: 'average', strMod: 0, agiMod: 2, endMod: 0, intMod: 3, passive: 'Water Born: Breathe underwater', color: '#44aadd', tier: 'uncommon' },
+            { name: 'Naiad', size: 'small', strMod: -2, agiMod: 3, endMod: -1, intMod: 3, passive: 'River Spirit: Heal near water', color: '#66ccee', tier: 'uncommon' },
+            { name: 'Kindir', size: 'average', strMod: 1, agiMod: 1, endMod: 1, intMod: 1, passive: 'Balanced: Minor bonus to all stats', color: '#ddddaa', tier: 'uncommon' }
+        ];
+
+        var rareRaces = [
+            { name: 'Fey', size: 'tiny', strMod: -6, agiMod: 8, endMod: -5, intMod: 7, passive: 'Fey Step: Short range teleport', color: '#88ffcc', tier: 'rare' },
+            { name: 'Builder Gnome', size: 'small', strMod: -1, agiMod: 1, endMod: 2, intMod: 6, passive: 'Master Builder: 2x crafting speed', color: '#ffaa44', tier: 'rare' },
+            { name: 'Pixie', size: 'tiny', strMod: -6, agiMod: 7, endMod: -4, intMod: 6, passive: 'Flutter: Slow fall and hover', color: '#ff88dd', tier: 'rare' }
+        ];
+
+        var legendaryRaces = [
+            { name: 'Psi Dragonling', size: 'small', strMod: 4, agiMod: 8, endMod: 6, intMod: 15, passive: 'Mind Fire: Psychic attacks deal bonus', color: '#00ffff', tier: 'legendary' },
+            { name: 'Tefonim', size: 'massive', strMod: 18, agiMod: -4, endMod: 16, intMod: 3, passive: 'Ancient Blood: Immune to fear', color: '#ffdd00', tier: 'legendary' },
+            { name: 'Messeji Dragon', size: 'massive', strMod: 14, agiMod: 5, endMod: 12, intMod: 12, passive: 'Dragon Soul: Fire breath attack', color: '#ff8800', tier: 'legendary' },
+            { name: 'Cherubiae', size: 'tiny', strMod: -2, agiMod: 12, endMod: 4, intMod: 18, passive: 'Divine Light: Heal allies nearby', color: '#ffffaa', tier: 'legendary' }
+        ];
+
+        var mythicRaces = [
+            { name: 'Chaos Seed', size: 'average', strMod: 10, agiMod: 10, endMod: 10, intMod: 10, passive: 'Chaos Powers: All stats enhanced, unique quest', color: '#ff00ff', tier: 'mythic' }
+        ];
+
+        this.shuffleArray(commonRaces);
+        this.availableRaces = commonRaces.slice();
+
+        for (var s = 0; s < savedUnlockedRaces.length; s++) {
+            this.availableRaces.push(savedUnlockedRaces[s]);
+        }
+
+        this.newUnlocks = [];
+        var beatRecord = lastRunLevel > bestLevel;
+        var levelsOver = beatRecord ? lastRunLevel - bestLevel : 0;
+        var luckMultiplier = 1 + (levelsOver * 0.3);
+        var isFirstRun = (bestLevel === 0 && lastRunLevel === 0);
+
+        if (beatRecord) {
+            bestLevel = lastRunLevel;
+        }
+
+        if (isFirstRun) {
+            this.shuffleArray(uncommonRaces);
+            for (var fi = 0; fi < uncommonRaces.length; fi++) {
+                if (unlockedRaceNames.indexOf(uncommonRaces[fi].name) === -1) {
+                    if (Math.floor(Math.random() * 3) === 0) {
+                        this.availableRaces.push(uncommonRaces[fi]);
+                        unlockedRaceNames.push(uncommonRaces[fi].name);
+                        savedUnlockedRaces.push(uncommonRaces[fi]);
+                        this.newUnlocks.push(uncommonRaces[fi]);
+                    }
+                }
+            }
+            this.shuffleArray(rareRaces);
+            for (var fj = 0; fj < rareRaces.length; fj++) {
+                if (unlockedRaceNames.indexOf(rareRaces[fj].name) === -1) {
+                    if (Math.floor(Math.random() * 100) === 0) {
+                        this.availableRaces.push(rareRaces[fj]);
+                        unlockedRaceNames.push(rareRaces[fj].name);
+                        savedUnlockedRaces.push(rareRaces[fj]);
+                        this.newUnlocks.push(rareRaces[fj]);
+                    }
+                }
+            }
+            this.shuffleArray(legendaryRaces);
+            for (var fk = 0; fk < legendaryRaces.length; fk++) {
+                if (unlockedRaceNames.indexOf(legendaryRaces[fk].name) === -1) {
+                    if (Math.floor(Math.random() * 10000) === 0) {
+                        this.availableRaces.push(legendaryRaces[fk]);
+                        unlockedRaceNames.push(legendaryRaces[fk].name);
+                        savedUnlockedRaces.push(legendaryRaces[fk]);
+                        this.newUnlocks.push(legendaryRaces[fk]);
+                    }
+                }
+            }
+            for (var fm = 0; fm < mythicRaces.length; fm++) {
+                if (unlockedRaceNames.indexOf(mythicRaces[fm].name) === -1) {
+                    if (Math.floor(Math.random() * 1000000) === 0) {
+                        this.availableRaces.push(mythicRaces[fm]);
+                        unlockedRaceNames.push(mythicRaces[fm].name);
+                        savedUnlockedRaces.push(mythicRaces[fm]);
+                        this.newUnlocks.push(mythicRaces[fm]);
+                    }
+                }
+            }
+        } else if (beatRecord && levelsOver > 0) {
+            this.shuffleArray(uncommonRaces);
+            for (var i = 0; i < uncommonRaces.length; i++) {
+                if (unlockedRaceNames.indexOf(uncommonRaces[i].name) === -1) {
+                    var uOdds = Math.max(1, Math.floor(3 / luckMultiplier));
+                    if (Math.floor(Math.random() * uOdds) === 0) {
+                        this.availableRaces.push(uncommonRaces[i]);
+                        unlockedRaceNames.push(uncommonRaces[i].name);
+                        savedUnlockedRaces.push(uncommonRaces[i]);
+                        this.newUnlocks.push(uncommonRaces[i]);
+                    }
+                }
+            }
+            this.shuffleArray(rareRaces);
+            for (var j = 0; j < rareRaces.length; j++) {
+                if (unlockedRaceNames.indexOf(rareRaces[j].name) === -1) {
+                    var rOdds = Math.max(1, Math.floor(100 / luckMultiplier));
+                    if (Math.floor(Math.random() * rOdds) === 0) {
+                        this.availableRaces.push(rareRaces[j]);
+                        unlockedRaceNames.push(rareRaces[j].name);
+                        savedUnlockedRaces.push(rareRaces[j]);
+                        this.newUnlocks.push(rareRaces[j]);
+                    }
+                }
+            }
+            this.shuffleArray(legendaryRaces);
+            for (var k = 0; k < legendaryRaces.length; k++) {
+                if (unlockedRaceNames.indexOf(legendaryRaces[k].name) === -1) {
+                    var lOdds = Math.max(1, Math.floor(10000 / luckMultiplier));
+                    if (Math.floor(Math.random() * lOdds) === 0) {
+                        this.availableRaces.push(legendaryRaces[k]);
+                        unlockedRaceNames.push(legendaryRaces[k].name);
+                        savedUnlockedRaces.push(legendaryRaces[k]);
+                        this.newUnlocks.push(legendaryRaces[k]);
+                    }
+                }
+            }
+            for (var m = 0; m < mythicRaces.length; m++) {
+                if (unlockedRaceNames.indexOf(mythicRaces[m].name) === -1) {
+                    var mOdds = Math.max(1, Math.floor(1000000 / luckMultiplier));
+                    if (Math.floor(Math.random() * mOdds) === 0) {
+                        this.availableRaces.push(mythicRaces[m]);
+                        unlockedRaceNames.push(mythicRaces[m].name);
+                        savedUnlockedRaces.push(mythicRaces[m]);
+                        this.newUnlocks.push(mythicRaces[m]);
+                    }
+                }
+            }
+        }
+
+        this.selectedIndex = 0;
+        this.selectedRace = this.availableRaces[0];
+        this.scrollOffset = 0;
+        this.maxVisible = 12;
+        this.raceTexts = [];
+        this.hoverIndex = -1;
+        this.hpPreviewLabel = null;
+        this.mpPreviewLabel = null;
+
+        this.drawUI();
+        this.drawRaceList();
+        this.updateDetails();
+
+        for (var n = 0; n < this.newUnlocks.length; n++) {
+            this.showUnlock(this.newUnlocks[n], n);
+        }
+    },
+
+    shuffleArray: function(arr) {
+        for (var i = arr.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var temp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
+        }
+    },
+
+    showUnlock: function(race, index) {
+        var delay = index * 2500;
+        var self = this;
+        var tierColors = { uncommon: '#44ff44', rare: '#4488ff', legendary: '#ffaa00', mythic: '#ff00ff' };
+        var isFirstRun = (bestLevel === 0 && lastRunLevel === 0);
+
+        this.time.delayedCall(delay, function() {
+            var flash = self.add.graphics().setDepth(20);
+            flash.fillStyle(0xffffff, 0.3);
+            flash.fillRect(0, 0, 800, 600);
+            self.tweens.add({ targets: flash, alpha: 0, duration: 800, onComplete: function() { flash.destroy(); } });
+
+            var tierColor = tierColors[race.tier] || '#ffffff';
+            var tierMsg = self.add.text(400, 260, race.tier.toUpperCase() + ' RACE UNLOCKED', {
+                fontSize: '14px', fontFamily: 'monospace', color: tierColor, stroke: '#000000', strokeThickness: 3
+            }).setOrigin(0.5).setDepth(21);
+
+            var msg = self.add.text(400, 290, '*** ' + race.name.toUpperCase() + ' ***', {
+                fontSize: '24px', fontFamily: 'monospace', color: race.color, stroke: '#000000', strokeThickness: 4
+            }).setOrigin(0.5).setDepth(21);
+
+            var luckMsg = null;
+            if (!isFirstRun) {
+                var luckPct = Math.round((1 + (Math.max(0, lastRunLevel - bestLevel) * 0.3)) * 100);
+                luckMsg = self.add.text(400, 325, 'Record beaten! Luck: ' + luckPct + '%', {
+                    fontSize: '11px', fontFamily: 'monospace', color: '#888888', stroke: '#000000', strokeThickness: 2
+                }).setOrigin(0.5).setDepth(21);
+            }
+
+            var targets = [msg, tierMsg];
+            if (luckMsg) targets.push(luckMsg);
+
+            self.tweens.add({
+                targets: targets, alpha: 0, y: '-=30', duration: 2000, delay: 500,
+                onComplete: function() {
+                    msg.destroy();
+                    tierMsg.destroy();
+                    if (luckMsg) luckMsg.destroy();
+                }
+            });
+        });
+    },
+
+    drawUI: function() {
+        var self = this;
+
+        this.add.text(400, 25, '-- CHOOSE YOUR RACE --', {
+            fontSize: '24px', fontFamily: 'monospace', color: '#00ff88', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0.5);
+
+        var leftBg = this.add.graphics();
+        leftBg.fillStyle(0x111122, 0.9);
+        leftBg.fillRect(20, 55, 220, 460);
+        leftBg.lineStyle(2, 0x00ff88, 0.5);
+        leftBg.strokeRect(20, 55, 220, 460);
+
+        var rightBg = this.add.graphics();
+        rightBg.fillStyle(0x111122, 0.9);
+        rightBg.fillRect(260, 55, 520, 460);
+        rightBg.lineStyle(2, 0x00ff88, 0.5);
+        rightBg.strokeRect(260, 55, 520, 460);
+
+        this.add.text(130, 65, '[ UP ]', {
+            fontSize: '12px', fontFamily: 'monospace', color: '#00ff88', stroke: '#000000', strokeThickness: 2
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', function() { self.scrollUp(); });
+
+        this.add.text(130, 500, '[ DOWN ]', {
+            fontSize: '12px', fontFamily: 'monospace', color: '#00ff88', stroke: '#000000', strokeThickness: 2
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', function() { self.scrollDown(); });
+
+        this.selectBtnBg = this.add.graphics();
+        this.selectBtnBg.fillStyle(0x006633, 1);
+        this.selectBtnBg.fillRect(290, 530, 460, 45);
+        this.selectBtnBg.lineStyle(2, 0x00ff88, 1);
+        this.selectBtnBg.strokeRect(290, 530, 460, 45);
+
+        this.add.text(520, 552, 'SELECT RACE', {
+            fontSize: '18px', fontFamily: 'monospace', color: '#ffffff', stroke: '#000000', strokeThickness: 2
+        }).setOrigin(0.5);
+
+        this.add.zone(520, 552, 460, 45).setInteractive({ useHandCursor: true })
+            .on('pointerdown', function() { self.selectRace(); })
+            .on('pointerover', function() {
+                self.selectBtnBg.clear();
+                self.selectBtnBg.fillStyle(0x008844, 1);
+                self.selectBtnBg.fillRect(290, 530, 460, 45);
+                self.selectBtnBg.lineStyle(2, 0x44ffaa, 1);
+                self.selectBtnBg.strokeRect(290, 530, 460, 45);
+            })
+            .on('pointerout', function() {
+                self.selectBtnBg.clear();
+                self.selectBtnBg.fillStyle(0x006633, 1);
+                self.selectBtnBg.fillRect(290, 530, 460, 45);
+                self.selectBtnBg.lineStyle(2, 0x00ff88, 1);
+                self.selectBtnBg.strokeRect(290, 530, 460, 45);
+            });
+
+        this.detailTitle = this.add.text(520, 75, '', {
+            fontSize: '22px', fontFamily: 'monospace', color: '#ffffff', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0.5);
+
+        this.detailText = this.add.text(280, 100, '', {
+            fontSize: '13px', fontFamily: 'monospace', color: '#cccccc', stroke: '#000000', strokeThickness: 2, lineSpacing: 5
+        });
+
+        var maskShape = this.add.graphics();
+        maskShape.fillStyle(0xffffff);
+        maskShape.fillRect(260, 95, 520, 420);
+        var mask = maskShape.createGeometryMask();
+        this.detailText.setMask(mask);
+        maskShape.setVisible(false);
+
+        this.detailScrollY = 0;
+        this.detailBaseY = 100;
+
+        this.detailUpBtn = this.add.text(750, 100, '^', {
+            fontSize: '18px', fontFamily: 'monospace', color: '#00ff88', stroke: '#000000', strokeThickness: 2
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        this.detailUpBtn.on('pointerdown', function() { self.scrollDetailUp(); });
+
+        this.detailDownBtn = this.add.text(750, 500, 'v', {
+            fontSize: '18px', fontFamily: 'monospace', color: '#00ff88', stroke: '#000000', strokeThickness: 2
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        this.detailDownBtn.on('pointerdown', function() { self.scrollDetailDown(); });
+
+        // Scroll wheel for BOTH panels
+        this.input.on('wheel', function(pointer, gameObjects, deltaX, deltaY) {
+            if (pointer.x >= 20 && pointer.x <= 240 && pointer.y >= 55 && pointer.y <= 515) {
+                // Left panel - race list
+                if (deltaY > 0) self.scrollDown();
+                else if (deltaY < 0) self.scrollUp();
+            } else if (pointer.x >= 260 && pointer.x <= 780 && pointer.y >= 55 && pointer.y <= 515) {
+                // Right panel - details
+                if (deltaY > 0) self.scrollDetailDown();
+                else if (deltaY < 0) self.scrollDetailUp();
+            }
+        });
+
+        this.detailBars = this.add.graphics();
+    },
+
+    scrollDetailUp: function() {
+        if (this.detailScrollY > 0) {
+            this.detailScrollY -= 20;
+            if (this.detailScrollY < 0) this.detailScrollY = 0;
+            this.detailText.setY(this.detailBaseY - this.detailScrollY);
+            this.updateScrollArrows();
+        }
+    },
+
+    scrollDetailDown: function() {
+        var textHeight = this.detailText.height;
+        var panelHeight = 400;
+        var maxScroll = Math.max(0, textHeight - panelHeight);
+        if (this.detailScrollY < maxScroll) {
+            this.detailScrollY += 20;
+            if (this.detailScrollY > maxScroll) this.detailScrollY = maxScroll;
+            this.detailText.setY(this.detailBaseY - this.detailScrollY);
+            this.updateScrollArrows();
+        }
+    },
+
+    updateScrollArrows: function() {
+        var textHeight = this.detailText.height;
+        var panelHeight = 400;
+        var maxScroll = Math.max(0, textHeight - panelHeight);
+        this.detailUpBtn.setAlpha(this.detailScrollY > 0 ? 1 : 0.3);
+        this.detailDownBtn.setAlpha(this.detailScrollY < maxScroll ? 1 : 0.3);
+    },
+
+    drawRaceList: function() {
+        var i;
+        for (i = 0; i < this.raceTexts.length; i++) { this.raceTexts[i].destroy(); }
+        this.raceTexts = [];
+        var startY = 85;
+        var visible = Math.min(this.maxVisible, this.availableRaces.length - this.scrollOffset);
+        var self = this;
+        this.hoverIndex = -1;
+        var tierColors = { common: '#666666', uncommon: '#44ff44', rare: '#4488ff', legendary: '#ffaa00', mythic: '#ff00ff' };
+
+        for (i = 0; i < visible; i++) {
+            var raceIndex = i + this.scrollOffset;
+            var race = this.availableRaces[raceIndex];
+            var y = startY + i * 32;
+            var isSelected = (raceIndex === this.selectedIndex);
+            var prefix = isSelected ? '> ' : '  ';
+            var displayName = race.name;
+            if (race.tier === 'rare') displayName = '+ ' + displayName;
+            else if (race.tier === 'legendary') displayName = '** ' + displayName;
+            else if (race.tier === 'mythic') displayName = '*** ' + displayName;
+            var color = isSelected ? race.color : (tierColors[race.tier] || '#666666');
+            var size = isSelected ? '14px' : '12px';
+
+            var text = this.add.text(30, y, prefix + displayName, {
+                fontSize: size, fontFamily: 'monospace', color: color, stroke: '#000000', strokeThickness: 2
+            }).setInteractive({ useHandCursor: true });
+
+            (function(idx, textObj, defaultColor) {
+                textObj.on('pointerover', function() { self.hoverIndex = idx; if (idx !== self.selectedIndex) textObj.setColor('#ffffff'); });
+                textObj.on('pointerout', function() { if (self.hoverIndex === idx) self.hoverIndex = -1; if (idx !== self.selectedIndex) textObj.setColor(defaultColor); });
+                textObj.on('pointerdown', function() { self.hoverIndex = -1; self.selectedIndex = idx; self.selectedRace = self.availableRaces[idx]; self.drawRaceList(); self.updateDetails(); });
+            })(raceIndex, text, color);
+            this.raceTexts.push(text);
+        }
+    },
+
+    updateDetails: function() {
+        var race = this.selectedRace;
+        var baseStr = 10, baseAgi = 8, baseEnd = 12, baseInt = 7;
+        var totalStr = baseStr + race.strMod, totalAgi = baseAgi + race.agiMod;
+        var totalEnd = baseEnd + race.endMod, totalInt = baseInt + race.intMod;
+        var maxHp = 50 + (totalEnd * 5), maxMp = 20 + (totalInt * 5);
+        var atkMin = Math.max(1, 5 + Math.floor(totalStr * 0.8) - 2);
+        var atkMax = 5 + Math.floor(totalStr * 0.8) + 2;
+        var critPct = (totalAgi * 1.5).toFixed(1);
+        var sign = function(val) { return val >= 0 ? '+' + val : '' + val; };
+        var tierTag = '';
+        if (race.tier === 'uncommon') tierTag = '  [ UNCOMMON ]\n';
+        else if (race.tier === 'rare') tierTag = '  [ RARE ]\n';
+        else if (race.tier === 'legendary') tierTag = '  *** LEGENDARY ***\n';
+        else if (race.tier === 'mythic') tierTag = '  ***** MYTHIC *****\n';
+
+        this.detailTitle.setText('-- ' + race.name.toUpperCase() + ' --');
+        this.detailTitle.setColor(race.color);
+        this.detailText.setText([tierTag, '  Size: ' + race.size.toUpperCase(), '', '  ATTRIBUTES', '  ─────────────────────────',
+            '  STR:  ' + baseStr + '  (' + sign(race.strMod) + ')  = ' + totalStr,
+            '  AGI:  ' + baseAgi + '  (' + sign(race.agiMod) + ')  = ' + totalAgi,
+            '  END:  ' + baseEnd + '  (' + sign(race.endMod) + ')  = ' + totalEnd,
+            '  INT:  ' + baseInt + '  (' + sign(race.intMod) + ')  = ' + totalInt,
+            '', '  VITALS', '  ─────────────────────────', '  HP:  ' + maxHp, '  MP:  ' + maxMp,
+            '', '  COMBAT', '  ─────────────────────────', '  Attack:  ' + atkMin + ' - ' + atkMax, '  Crit:    ' + critPct + '%',
+            '', '  PASSIVE', '  ─────────────────────────', '  ' + race.passive]);
+        this.detailScrollY = 0;
+        this.detailText.setY(this.detailBaseY);
+        this.updateScrollArrows();
+        if (this.hpPreviewLabel) { this.hpPreviewLabel.destroy(); this.hpPreviewLabel = null; }
+        if (this.mpPreviewLabel) { this.mpPreviewLabel.destroy(); this.mpPreviewLabel = null; }
+        this.detailBars.clear();
+    },
+
+    scrollUp: function() { if (this.scrollOffset > 0) { this.scrollOffset--; this.drawRaceList(); } },
+    scrollDown: function() { if (this.scrollOffset < this.availableRaces.length - this.maxVisible) { this.scrollOffset++; this.drawRaceList(); } },
+    selectRace: function() { this.scene.start('mainScene', { race: this.selectedRace }); }
+});
+
+
+var mainScene = new Phaser.Class({
+    Extends: Phaser.Scene,
+    initialize: function mainScene() { Phaser.Scene.call(this, { key: 'mainScene' }); },
+
+    init: function(data) {
+        this.baseStats = { strength: 10, agility: 8, endurance: 12, intelligence: 7 };
+        if (data && data.race) { this.race = data.race; }
+        else { this.race = { name: 'Human', size: 'average', strMod: 0, agiMod: 0, endMod: 0, intMod: 0, passive: 'Adaptable', color: '#cccccc', tier: 'common' }; }
+        this.stats = { level: 1, xp: 0, xpToNext: 100, skillPoints: 0,
+            strength: this.baseStats.strength + this.race.strMod, agility: this.baseStats.agility + this.race.agiMod,
+            endurance: this.baseStats.endurance + this.race.endMod, intelligence: this.baseStats.intelligence + this.race.intMod };
+        this.stats.maxHealth = 50 + (this.stats.endurance * 5); this.stats.health = this.stats.maxHealth;
+        this.stats.maxMana = 20 + (this.stats.intelligence * 5); this.stats.mana = this.stats.maxMana;
+        this.attackCooldown = false; this.attackRange = 100; this.attackDuration = 200; this.cooldownTime = 400;
+        this.enemies = []; this.isAttacking = false; this.facingDirection = 'right';
+        this.quickHudVisible = false; this.fullHudVisible = false; this.regenTimer = 0;
+        this.playerInvuln = false; this.totalKills = 0;
+    },
+
+    create: function() {
+        if (!this.textures.exists('player')) { var g = this.add.graphics(); g.fillStyle(0x3399ff,1); g.fillRect(0,0,32,32); g.generateTexture('player',32,32); g.destroy(); }
+        if (!this.textures.exists('enemy')) { var g2 = this.add.graphics(); g2.fillStyle(0xff3333,1); g2.fillRect(0,0,28,28); g2.generateTexture('enemy',28,28); g2.destroy(); }
+        if (!this.textures.exists('swing')) { var g3 = this.add.graphics(); g3.fillStyle(0xffff00,0.5); g3.fillCircle(16,16,16); g3.generateTexture('swing',32,32); g3.destroy(); }
+        if (!this.textures.exists('projectile_red')) { var g4 = this.add.graphics(); g4.fillStyle(0xff4444,1); g4.fillCircle(5,5,5); g4.generateTexture('projectile_red',10,10); g4.destroy(); }
+        if (!this.textures.exists('projectile_purple')) { var g5 = this.add.graphics(); g5.fillStyle(0x8844ff,1); g5.fillCircle(6,6,6); g5.generateTexture('projectile_purple',12,12); g5.destroy(); }
+        if (!this.textures.exists('projectile_fire')) { var g6 = this.add.graphics(); g6.fillStyle(0xff6600,1); g6.fillCircle(7,7,7); g6.lineStyle(2,0xffaa00,1); g6.strokeCircle(7,7,7); g6.generateTexture('projectile_fire',14,14); g6.destroy(); }
+        if (!this.textures.exists('medbox')) { var g7 = this.add.graphics(); g7.fillStyle(0xffffff,1); g7.fillRect(0,0,20,20); g7.fillStyle(0x00cc44,1); g7.fillRect(8,3,4,14); g7.fillRect(3,8,14,4); g7.generateTexture('medbox',20,20); g7.destroy(); }
+
+        this.cameras.main.setBackgroundColor('#1a1a2e');
+        this.player = this.physics.add.sprite(400, 300, 'player');
+        this.player.setCollideWorldBounds(true); this.player.setDepth(1);
+        var raceColor = Phaser.Display.Color.HexStringToColor(this.race.color);
+        this.player.setTint(raceColor.color); this.player.setScale(this.getSizeScale(this.race.size));
+
+        this.enemyGroup = this.physics.add.group(); this.spawnEnemies(5);
+        this.projectileGroup = this.physics.add.group();
+        this.physics.add.overlap(this.player, this.enemyGroup, this.handleEnemyContact, null, this);
+        this.physics.add.overlap(this.player, this.projectileGroup, this.handleProjectileHit, null, this);
+
+        this.medBoxGroup = this.physics.add.group();
+        this.physics.add.overlap(this.player, this.medBoxGroup, this.handleMedBoxPickup, null, this);
+        this.spawnMedBox(); this.spawnMedBox();
+        var self = this;
+        this.medBoxTimer = this.time.addEvent({ delay: 15000, callback: function() { if (self.medBoxGroup.countActive() < 3) self.spawnMedBox(); }, loop: true });
+
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.wasd = this.input.keyboard.addKeys({ up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S, left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D });
+        this.input.keyboard.on('keydown-SPACE', function() { self.meleeAttack(); });
+        this.input.on('pointerdown', function(pointer) { if (pointer.leftButtonDown()) self.meleeAttack(); });
+
+        this.createHUDButton(); this.createHUDPanel();
+        var msg = 'You are a ' + this.race.name + '!';
+        if (this.race.tier === 'legendary' || this.race.tier === 'mythic') msg = '*** ' + msg + ' ***';
+        this.showNotification(msg);
+    },
+
+    getSizeScale: function(s) { switch(s) { case 'tiny': return 0.6; case 'small': return 0.8; case 'average': return 1.0; case 'large': return 1.3; case 'massive': return 1.6; } return 1.0; },
+    getXpToNext: function(level) { return Math.floor(100 * Math.pow(1.5, level - 1)); },
+
+    gainXP: function(amount) {
+        if (this.race.name === 'Human') amount = Math.floor(amount * 1.2);
+        this.stats.xp += amount;
+        while (this.stats.xp >= this.stats.xpToNext) { this.stats.xp -= this.stats.xpToNext; this.levelUp(); }
+    },
+
+    levelUp: function() {
+        this.stats.level++; this.stats.xpToNext = this.getXpToNext(this.stats.level); this.stats.skillPoints += 3;
+        this.stats.strength += 1; this.stats.agility += 1; this.stats.endurance += 1; this.stats.intelligence += 1;
+        if (this.race.strMod > 0) this.stats.strength += 1; if (this.race.agiMod > 0) this.stats.agility += 1;
+        if (this.race.endMod > 0) this.stats.endurance += 1; if (this.race.intMod > 0) this.stats.intelligence += 1;
+        this.stats.maxHealth = 50 + (this.stats.endurance * 5); this.stats.maxMana = 20 + (this.stats.intelligence * 5);
+        this.stats.health = Math.min(this.stats.health, this.stats.maxHealth); this.stats.mana = Math.min(this.stats.mana, this.stats.maxMana);
+        this.showLevelUpEffect(); this.showNotification('LEVEL UP! You are now level ' + this.stats.level + '!');
+    },
+
+    showLevelUpEffect: function() {
+        var self = this;
+        var flash = this.add.graphics().setDepth(15); flash.fillStyle(0xffff00, 0.3); flash.fillRect(0,0,800,600);
+        this.tweens.add({ targets: flash, alpha: 0, duration: 600, onComplete: function() { flash.destroy(); } });
+        var ring = this.add.graphics().setDepth(12);
+        this.tweens.addCounter({ from: 10, to: 100, duration: 600,
+            onUpdate: function(tween) { ring.clear(); var r = tween.getValue(); ring.lineStyle(3, 0xffff00, 1-(r/100)); ring.strokeCircle(self.player.x, self.player.y, r); },
+            onComplete: function() { ring.destroy(); } });
+        var statText = this.add.text(this.player.x, this.player.y - 40, 'Lv.' + this.stats.level + '  +STR +AGI +END +INT', {
+            fontSize: '11px', fontFamily: 'monospace', color: '#ffff44', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5).setDepth(15);
+        this.tweens.add({ targets: statText, y: statText.y - 50, alpha: 0, duration: 2000, onComplete: function() { statText.destroy(); } });
+    },
+
+    createHUDButton: function() {
+        this.hudBtnBg = this.add.graphics().setScrollFactor(0).setDepth(30);
+        this.hudBtnBg.fillStyle(0x333333, 0.9); this.hudBtnBg.fillRect(740,550,50,40);
+        this.hudBtnBg.lineStyle(2, 0x00ff88, 1); this.hudBtnBg.strokeRect(740,550,50,40);
+        this.hudBtnText = this.add.text(765, 570, '[=]', { fontSize: '16px', fontFamily: 'monospace', color: '#00ff88', stroke: '#000000', strokeThickness: 2 }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
+        this.hudBtnZone = this.add.zone(765, 570, 50, 40).setScrollFactor(0).setDepth(32).setInteractive({ useHandCursor: true });
+        this.holdTimer = null; this.didHold = false; this.closedFull = false; this.quickWasOpen = false;
+        var self = this;
+        this.hudBtnZone.on('pointerdown', function() {
+            self.didHold = false; self.closedFull = false;
+            if (self.fullHudVisible) {
+                self.fullHudVisible = false; self.fullElements.forEach(function(el) { el.setVisible(false); });
+                if (self.quickWasOpen) { self.quickHudVisible = true; self.quickElements.forEach(function(el) { el.setVisible(true); }); self.hudBtnText.setText('[X]'); }
+                else { self.hudBtnText.setText('[=]'); }
+                self.closedFull = true; return;
+            }
+            if (self.holdTimer) { self.holdTimer.remove(); self.holdTimer = null; }
+            self.holdTimer = self.time.delayedCall(400, function() {
+                self.didHold = true; self.quickWasOpen = self.quickHudVisible;
+                if (self.quickHudVisible) { self.quickElements.forEach(function(el) { el.setVisible(false); }); }
+                self.fullHudVisible = true; self.fullElements.forEach(function(el) { el.setVisible(true); });
+                self.fullScrollY = 0; self.fullContainer.setY(self.fullBaseY); self.hudBtnText.setText('[+]');
+            });
+        });
+        this.hudBtnZone.on('pointerup', function() {
+            if (self.holdTimer) { self.holdTimer.remove(); self.holdTimer = null; }
+            if (self.closedFull) { self.closedFull = false; return; }
+            if (self.didHold) { self.didHold = false; return; }
+            self.quickHudVisible = !self.quickHudVisible;
+            self.quickElements.forEach(function(el) { el.setVisible(self.quickHudVisible); });
+            self.hudBtnText.setText(self.quickHudVisible ? '[X]' : '[=]');
+        });
+        this.hudBtnZone.on('pointerover', function() { self.hudBtnBg.clear(); self.hudBtnBg.fillStyle(0x555555,0.9); self.hudBtnBg.fillRect(740,550,50,40); self.hudBtnBg.lineStyle(2,0x44ffaa,1); self.hudBtnBg.strokeRect(740,550,50,40); });
+        this.hudBtnZone.on('pointerout', function() { if(self.holdTimer){self.holdTimer.remove();self.holdTimer=null;} self.hudBtnBg.clear(); self.hudBtnBg.fillStyle(0x333333,0.9); self.hudBtnBg.fillRect(740,550,50,40); self.hudBtnBg.lineStyle(2,0x00ff88,1); self.hudBtnBg.strokeRect(740,550,50,40); });
+    },
+
+    createHUDPanel: function() {
+        this.quickElements = [];
+        this.quickBg = this.add.graphics().setScrollFactor(0).setDepth(20); this.quickElements.push(this.quickBg);
+        this.hpBarBg = this.add.graphics().setScrollFactor(0).setDepth(21); this.hpBarFill = this.add.graphics().setScrollFactor(0).setDepth(22); this.hpBarBorder = this.add.graphics().setScrollFactor(0).setDepth(23);
+        this.quickElements.push(this.hpBarBg, this.hpBarFill, this.hpBarBorder);
+        this.hpLabel = this.add.text(0,0,'',{fontSize:'11px',fontFamily:'monospace',color:'#ffffff',stroke:'#000000',strokeThickness:3}).setOrigin(0.5).setScrollFactor(0).setDepth(24); this.quickElements.push(this.hpLabel);
+        this.mpBarBg = this.add.graphics().setScrollFactor(0).setDepth(21); this.mpBarFill = this.add.graphics().setScrollFactor(0).setDepth(22); this.mpBarBorder = this.add.graphics().setScrollFactor(0).setDepth(23);
+        this.quickElements.push(this.mpBarBg, this.mpBarFill, this.mpBarBorder);
+        this.mpLabel = this.add.text(0,0,'',{fontSize:'11px',fontFamily:'monospace',color:'#ffffff',stroke:'#000000',strokeThickness:3}).setOrigin(0.5).setScrollFactor(0).setDepth(24); this.quickElements.push(this.mpLabel);
+        this.xpBarBg = this.add.graphics().setScrollFactor(0).setDepth(21); this.xpBarFill = this.add.graphics().setScrollFactor(0).setDepth(22); this.xpBarBorder = this.add.graphics().setScrollFactor(0).setDepth(23);
+        this.quickElements.push(this.xpBarBg, this.xpBarFill, this.xpBarBorder);
+        this.xpLabel = this.add.text(0,0,'',{fontSize:'10px',fontFamily:'monospace',color:'#ffffff',stroke:'#000000',strokeThickness:3}).setOrigin(0.5).setScrollFactor(0).setDepth(24); this.quickElements.push(this.xpLabel);
+        this.quickLevelText = this.add.text(25,15,'',{fontSize:'12px',fontFamily:'monospace',color:'#00ff88',stroke:'#000000',strokeThickness:2}).setScrollFactor(0).setDepth(22); this.quickElements.push(this.quickLevelText);
+        this.quickElements.forEach(function(el){el.setVisible(false);});
+
+        this.fullElements = [];
+        this.fullBg = this.add.graphics().setScrollFactor(0).setDepth(25); this.fullElements.push(this.fullBg);
+        this.fullTitle = this.add.text(400,70,'',{fontSize:'20px',fontFamily:'monospace',color:'#00ff88',stroke:'#000000',strokeThickness:3}).setOrigin(0.5).setScrollFactor(0).setDepth(28); this.fullElements.push(this.fullTitle);
+        this.fullContainer = this.add.container(130,105).setScrollFactor(0).setDepth(27); this.fullElements.push(this.fullContainer);
+        this.fullStatsText = this.add.text(0,0,'',{fontSize:'13px',fontFamily:'monospace',color:'#cccccc',stroke:'#000000',strokeThickness:2,lineSpacing:6}); this.fullContainer.add(this.fullStatsText);
+        this.fullHpBg=this.add.graphics(); this.fullHpFill=this.add.graphics(); this.fullHpBorder=this.add.graphics();
+        this.fullContainer.add(this.fullHpBg); this.fullContainer.add(this.fullHpFill); this.fullContainer.add(this.fullHpBorder);
+        this.fullHpLabel = this.add.text(0,0,'',{fontSize:'12px',fontFamily:'monospace',color:'#ffffff',stroke:'#000000',strokeThickness:3}).setOrigin(0.5); this.fullContainer.add(this.fullHpLabel);
+        this.fullMpBg=this.add.graphics(); this.fullMpFill=this.add.graphics(); this.fullMpBorder=this.add.graphics();
+        this.fullContainer.add(this.fullMpBg); this.fullContainer.add(this.fullMpFill); this.fullContainer.add(this.fullMpBorder);
+        this.fullMpLabel = this.add.text(0,0,'',{fontSize:'12px',fontFamily:'monospace',color:'#ffffff',stroke:'#000000',strokeThickness:3}).setOrigin(0.5); this.fullContainer.add(this.fullMpLabel);
+        this.fullXpBg=this.add.graphics(); this.fullXpFill=this.add.graphics(); this.fullXpBorder=this.add.graphics();
+        this.fullContainer.add(this.fullXpBg); this.fullContainer.add(this.fullXpFill); this.fullContainer.add(this.fullXpBorder);
+        this.fullXpLabel = this.add.text(0,0,'',{fontSize:'12px',fontFamily:'monospace',color:'#ffffff',stroke:'#000000',strokeThickness:3}).setOrigin(0.5); this.fullContainer.add(this.fullXpLabel);
+        var fms = this.add.graphics(); fms.fillStyle(0xffffff); fms.fillRect(100,95,600,450); this.fullContainer.setMask(fms.createGeometryMask()); fms.setVisible(false);
+        var self = this;
+        this.fullScrollUpBtn = this.add.text(680,105,'^',{fontSize:'18px',fontFamily:'monospace',color:'#00ff88',stroke:'#000000',strokeThickness:2}).setOrigin(0.5).setScrollFactor(0).setDepth(29).setInteractive({useHandCursor:true});
+        this.fullScrollUpBtn.on('pointerdown',function(){self.scrollFullUp();}); this.fullElements.push(this.fullScrollUpBtn);
+        this.fullScrollDownBtn = this.add.text(680,535,'v',{fontSize:'18px',fontFamily:'monospace',color:'#00ff88',stroke:'#000000',strokeThickness:2}).setOrigin(0.5).setScrollFactor(0).setDepth(29).setInteractive({useHandCursor:true});
+        this.fullScrollDownBtn.on('pointerdown',function(){self.scrollFullDown();}); this.fullElements.push(this.fullScrollDownBtn);
+        this.input.on('wheel',function(p,g,dx,dy){if(self.fullHudVisible){if(dy>0)self.scrollFullDown();else if(dy<0)self.scrollFullUp();}});
+        this.fullScrollY=0; this.fullBaseY=105;
+        this.fullElements.forEach(function(el){el.setVisible(false);});
+    },
+
+    scrollFullUp: function() { if(this.fullScrollY>0){this.fullScrollY-=20;if(this.fullScrollY<0)this.fullScrollY=0;this.fullContainer.setY(this.fullBaseY-this.fullScrollY);} },
+    scrollFullDown: function() { var t=this.getFullContentHeight(),p=440,mx=Math.max(0,t-p);if(this.fullScrollY<mx){this.fullScrollY+=20;if(this.fullScrollY>mx)this.fullScrollY=mx;this.fullContainer.setY(this.fullBaseY-this.fullScrollY);} },
+    getFullContentHeight: function() { var b=20,s=this.fullStatsText.height+15;return s+b+8+b+8+b+20; },
+    updateHUD: function() { if(this.quickHudVisible)this.updateQuickHUD();if(this.fullHudVisible)this.updateFullStatus(); },
+
+    updateQuickHUD: function() {
+        this.quickBg.clear(); this.quickBg.fillStyle(0x111122,0.85); this.quickBg.fillRect(10,10,180,120); this.quickBg.lineStyle(2,0x00ff88,0.6); this.quickBg.strokeRect(10,10,180,120);
+        this.quickLevelText.setText('  '+this.race.name+'  Lv.'+this.stats.level);
+        var hpX=20,hpY=40,bW=160,bH=14,hR=Math.max(0,this.stats.health/this.stats.maxHealth);
+        var hC; if(hR>0.6)hC=0x00ff44;else if(hR>0.3)hC=0xffaa00;else hC=0xff2222;
+        this.hpBarBg.clear();this.hpBarBg.fillStyle(0x222222,0.8);this.hpBarBg.fillRect(hpX,hpY,bW,bH);
+        this.hpBarFill.clear();this.hpBarFill.fillStyle(hC,1);this.hpBarFill.fillRect(hpX,hpY,bW*hR,bH);
+        this.hpBarBorder.clear();this.hpBarBorder.lineStyle(1,0xffffff,0.5);this.hpBarBorder.strokeRect(hpX,hpY,bW,bH);
+        this.hpLabel.setPosition(hpX+bW/2,hpY+bH/2);this.hpLabel.setText('HP '+this.stats.health+'/'+this.stats.maxHealth);
+        var mY=hpY+bH+6,mR=Math.max(0,this.stats.mana/this.stats.maxMana);
+        this.mpBarBg.clear();this.mpBarBg.fillStyle(0x222222,0.8);this.mpBarBg.fillRect(hpX,mY,bW,bH);
+        this.mpBarFill.clear();this.mpBarFill.fillStyle(0x3366ff,1);this.mpBarFill.fillRect(hpX,mY,bW*mR,bH);
+        this.mpBarBorder.clear();this.mpBarBorder.lineStyle(1,0xffffff,0.5);this.mpBarBorder.strokeRect(hpX,mY,bW,bH);
+        this.mpLabel.setPosition(hpX+bW/2,mY+bH/2);this.mpLabel.setText('MP '+this.stats.mana+'/'+this.stats.maxMana);
+        var xY=mY+bH+6,xR=Math.max(0,this.stats.xp/this.stats.xpToNext);
+        this.xpBarBg.clear();this.xpBarBg.fillStyle(0x222222,0.8);this.xpBarBg.fillRect(hpX,xY,bW,10);
+        this.xpBarFill.clear();this.xpBarFill.fillStyle(0xaa44ff,1);this.xpBarFill.fillRect(hpX,xY,bW*xR,10);
+        this.xpBarBorder.clear();this.xpBarBorder.lineStyle(1,0xffffff,0.5);this.xpBarBorder.strokeRect(hpX,xY,bW,10);
+        this.xpLabel.setPosition(hpX+bW/2,xY+5);this.xpLabel.setText('XP '+this.stats.xp+'/'+this.stats.xpToNext);
+    },
+
+    updateFullStatus: function() {
+        this.fullBg.clear();this.fullBg.fillStyle(0x000000,0.75);this.fullBg.fillRect(0,0,800,600);
+        this.fullBg.fillStyle(0x111122,0.95);this.fullBg.fillRect(100,40,600,520);this.fullBg.lineStyle(3,0x00ff88,0.8);this.fullBg.strokeRect(100,40,600,520);
+        this.fullBg.lineStyle(1,0x00ff88,0.4);this.fullBg.lineBetween(130,95,670,95);
+        var tt='-- '+this.race.name+' --';if(this.race.tier==='mythic')tt='***** '+this.race.name+' *****';else if(this.race.tier==='legendary')tt='*** '+this.race.name+' ***';
+        this.fullTitle.setText(tt);this.fullTitle.setColor(this.race.color);
+        var sign=function(v){return v>=0?'+'+v:''+v;};var aMin=Math.max(1,5+Math.floor(this.stats.strength*0.8)-2);var aMax=5+Math.floor(this.stats.strength*0.8)+2;var cP=(this.stats.agility*1.5).toFixed(1);
+        var tTag='';if(this.race.tier==='uncommon')tTag='  [ UNCOMMON ]\n';else if(this.race.tier==='rare')tTag='  [ RARE ]\n';else if(this.race.tier==='legendary')tTag='  *** LEGENDARY ***\n';else if(this.race.tier==='mythic')tTag='  ***** MYTHIC *****\n';
+        this.fullStatsText.setPosition(0,0);
+        this.fullStatsText.setText([tTag,'  Level: '+this.stats.level,'  Size: '+this.race.size.toUpperCase(),'  Kills: '+this.totalKills,'','  ATTRIBUTES','  ─────────────────────────────',
+            '  STR: '+this.stats.strength+'  (base '+sign(this.race.strMod)+')','  AGI: '+this.stats.agility+'  (base '+sign(this.race.agiMod)+')',
+            '  END: '+this.stats.endurance+'  (base '+sign(this.race.endMod)+')','  INT: '+this.stats.intelligence+'  (base '+sign(this.race.intMod)+')',
+            '','  COMBAT','  ─────────────────────────────','  Attack: '+aMin+' - '+aMax,'  Crit:   '+cP+'%','','  PASSIVE','  ─────────────────────────────','  '+this.race.passive,'','  VITALS','  ─────────────────────────────']);
+        var bsY=this.fullStatsText.height+15,bW=540,bH=20,hR=Math.max(0,this.stats.health/this.stats.maxHealth);
+        var hC;if(hR>0.6)hC=0x00ff44;else if(hR>0.3)hC=0xffaa00;else hC=0xff2222;
+        this.fullHpBg.clear();this.fullHpBg.fillStyle(0x222222,0.8);this.fullHpBg.fillRect(0,bsY,bW,bH);
+        this.fullHpFill.clear();this.fullHpFill.fillStyle(hC,1);this.fullHpFill.fillRect(0,bsY,bW*hR,bH);
+        this.fullHpBorder.clear();this.fullHpBorder.lineStyle(1,0xffffff,0.5);this.fullHpBorder.strokeRect(0,bsY,bW,bH);
+        this.fullHpLabel.setPosition(bW/2,bsY+bH/2);this.fullHpLabel.setText('HP '+this.stats.health+' / '+this.stats.maxHealth);
+        var mBY=bsY+bH+8,mR=Math.max(0,this.stats.mana/this.stats.maxMana);
+        this.fullMpBg.clear();this.fullMpBg.fillStyle(0x222222,0.8);this.fullMpBg.fillRect(0,mBY,bW,bH);
+        this.fullMpFill.clear();this.fullMpFill.fillStyle(0x3366ff,1);this.fullMpFill.fillRect(0,mBY,bW*mR,bH);
+        this.fullMpBorder.clear();this.fullMpBorder.lineStyle(1,0xffffff,0.5);this.fullMpBorder.strokeRect(0,mBY,bW,bH);
+        this.fullMpLabel.setPosition(bW/2,mBY+bH/2);this.fullMpLabel.setText('MP '+this.stats.mana+' / '+this.stats.maxMana);
+        var xBY=mBY+bH+8,xR=Math.max(0,this.stats.xp/this.stats.xpToNext);
+        this.fullXpBg.clear();this.fullXpBg.fillStyle(0x222222,0.8);this.fullXpBg.fillRect(0,xBY,bW,bH);
+        this.fullXpFill.clear();this.fullXpFill.fillStyle(0xaa44ff,1);this.fullXpFill.fillRect(0,xBY,bW*xR,bH);
+        this.fullXpBorder.clear();this.fullXpBorder.lineStyle(1,0xffffff,0.5);this.fullXpBorder.strokeRect(0,xBY,bW,bH);
+        this.fullXpLabel.setPosition(bW/2,xBY+bH/2);this.fullXpLabel.setText('XP '+this.stats.xp+' / '+this.stats.xpToNext);
+        var tH=this.getFullContentHeight(),pH=440,mxS=Math.max(0,tH-pH);
+        this.fullScrollUpBtn.setAlpha(this.fullScrollY>0?1:0.3);this.fullScrollDownBtn.setAlpha(this.fullScrollY<mxS?1:0.3);
+    },
+
+    spawnEnemies: function(count) {
+        var types=this.getEnemyTypesForLevel(this.stats.level);
+        var corners=[{x:30,y:30},{x:770,y:30},{x:30,y:570},{x:770,y:570}];
+        for(var i=0;i<count;i++){
+            var c=corners[Phaser.Math.Between(0,corners.length-1)];
+            var x=Phaser.Math.Clamp(c.x+Phaser.Math.Between(-25,25),10,790);
+            var y=Phaser.Math.Clamp(c.y+Phaser.Math.Between(-25,25),10,590);
+            var t=types[Phaser.Math.Between(0,types.length-1)];
+            var e=this.enemyGroup.create(x,y,'enemy');e.setCollideWorldBounds(true);e.setBounce(1);
+            e.setData('health',t.health);e.setData('maxHealth',t.health);e.setData('damage',t.damage);e.setData('xpReward',t.xp);
+            e.setData('name',t.name);e.setData('speed',t.speed);e.setData('shoots',t.shoots||false);
+            e.setData('projectileSpeed',t.projectileSpeed||0);e.setData('projectileDamage',t.projectileDamage||0);
+            e.setData('shootCooldown',t.shootCooldown||3000);e.setData('lastShot',0);
+            e.setData('projectileTexture',t.projectileTexture||'projectile_red');e.setData('aggroRange',t.aggroRange||150);
+            var tc=Phaser.Display.Color.HexStringToColor(t.color);e.setTint(tc.color);e.setScale(t.scale||1);
+            e.setVelocity(Phaser.Math.Between(-t.speed,t.speed),Phaser.Math.Between(-t.speed,t.speed));this.enemies.push(e);
+        }
+    },
+
+    getEnemyTypesForLevel: function(l) {
+        var t=[];
+        t.push({name:'Goblin',health:25+l*3,damage:4+Math.floor(l*0.5),xp:12+l*2,speed:40,color:'#ff3333',scale:1});
+        if(l>=2)t.push({name:'Wolf',health:20+l*2,damage:6+Math.floor(l*0.7),xp:18+l*3,speed:110,color:'#888888',scale:0.9,aggroRange:200});
+        if(l>=3)t.push({name:'Orc',health:45+l*5,damage:8+l,xp:25+l*4,speed:35,color:'#44aa44',scale:1.2,shoots:true,projectileSpeed:100,projectileDamage:6+Math.floor(l*0.8),shootCooldown:3000,projectileTexture:'projectile_red',aggroRange:200});
+        if(l>=5)t.push({name:'Dark Knight',health:60+l*6,damage:10+l,xp:40+l*5,speed:60,color:'#6633aa',scale:1.1,shoots:true,projectileSpeed:130,projectileDamage:9+l,shootCooldown:2500,projectileTexture:'projectile_purple',aggroRange:250});
+        if(l>=7)t.push({name:'Demon',health:80+l*8,damage:14+l*2,xp:60+l*6,speed:75,color:'#ff4400',scale:1.3,shoots:true,projectileSpeed:150,projectileDamage:12+l,shootCooldown:2000,projectileTexture:'projectile_fire',aggroRange:280});
+        if(l>=10)t.push({name:'Dragon Whelp',health:120+l*10,damage:18+l*2,xp:100+l*8,speed:65,color:'#ff8800',scale:1.5,shoots:true,projectileSpeed:120,projectileDamage:16+l*2,shootCooldown:1800,projectileTexture:'projectile_fire',aggroRange:300});
+        return t;
+    },
+
+    handleEnemyContact: function(p,e) { if(!e.active)return;this.damagePlayer(e.getData('damage'));var a=Phaser.Math.Angle.Between(e.x,e.y,p.x,p.y);p.setVelocity(Math.cos(a)*150,Math.sin(a)*150); },
+    handleProjectileHit: function(p,pr) { if(!pr.active)return;this.damagePlayer(pr.getData('damage')||5);var a=Phaser.Math.Angle.Between(pr.x,pr.y,p.x,p.y);p.setVelocity(Math.cos(a)*100,Math.sin(a)*100);pr.destroy(); },
+
+    damagePlayer: function(amount) {
+        if(this.playerInvuln)return;
+        this.stats.health=Math.max(0,this.stats.health-amount);this.playerInvuln=true;
+        this.showDamageNumber(this.player.x,this.player.y-20,amount,false,true);
+        this.player.setTint(0xff0000);var self=this;
+        this.time.delayedCall(500,function(){var rc=Phaser.Display.Color.HexStringToColor(self.race.color);self.player.setTint(rc.color);self.playerInvuln=false;});
+        if(this.stats.health<=0){
+            lastRunLevel=this.stats.level;lastRunKills=this.totalKills;
+            var beat=lastRunLevel>bestLevel;var over=beat?lastRunLevel-bestLevel:0;
+            this.add.text(400,230,'YOU HAVE DIED',{fontSize:'32px',fontFamily:'monospace',color:'#ff0000',stroke:'#000000',strokeThickness:4}).setOrigin(0.5).setDepth(50);
+            this.add.text(400,280,'Level: '+lastRunLevel+'  Kills: '+lastRunKills,{fontSize:'14px',fontFamily:'monospace',color:'#aaaaaa',stroke:'#000000',strokeThickness:3}).setOrigin(0.5).setDepth(50);
+            if(beat){
+                this.add.text(400,310,'NEW RECORD! +'+over+' past previous best!',{fontSize:'14px',fontFamily:'monospace',color:'#ffaa00',stroke:'#000000',strokeThickness:3}).setOrigin(0.5).setDepth(50);
+                this.add.text(400,340,'New races may appear! (Luck boosted!)',{fontSize:'14px',fontFamily:'monospace',color:'#44ff44',stroke:'#000000',strokeThickness:3}).setOrigin(0.5).setDepth(50);
+            } else {
+                this.add.text(400,310,'Best: Lv.'+bestLevel+'  (No new race rolls)',{fontSize:'14px',fontFamily:'monospace',color:'#666666',stroke:'#000000',strokeThickness:3}).setOrigin(0.5).setDepth(50);
+            }
+            this.player.setVelocity(0);this.physics.pause();
+            this.time.delayedCall(3000,function(){self.physics.resume();self.scene.start('SelectScene');});
+        }
+    },
+
+    meleeAttack: function() {
+        if(this.attackCooldown||this.isAttacking)return;this.isAttacking=true;this.attackCooldown=true;
+        var o=this.attackRange/2+16,sx=this.player.x,sy=this.player.y,a=0;
+        switch(this.facingDirection){case'right':sx+=o;a=0;break;case'left':sx-=o;a=180;break;case'up':sy-=o;a=-90;break;case'down':sy+=o;a=90;break;}
+        var sw=this.add.sprite(sx,sy,'swing');sw.setAlpha(0.6);sw.setAngle(a);sw.setDepth(2);this.player.setTint(0xffffff);
+        var self=this;
+        this.enemyGroup.getChildren().forEach(function(e){if(!e.active)return;var d=Phaser.Math.Distance.Between(self.player.x,self.player.y,e.x,e.y);if(d<=self.attackRange&&self.isInAttackArc(e))self.damageEnemy(e);});
+        this.time.delayedCall(this.attackDuration,function(){sw.destroy();self.player.clearTint();self.isAttacking=false;});
+        this.time.delayedCall(this.cooldownTime,function(){self.attackCooldown=false;});
+    },
+
+    isInAttackArc: function(e) { var dx=e.x-this.player.x,dy=e.y-this.player.y;switch(this.facingDirection){case'right':return dx>0;case'left':return dx<0;case'up':return dy<0;case'down':return dy>0;}return false; },
+
+    damageEnemy: function(e) {
+        var bd=5,sb=Math.floor(this.stats.strength*0.8),v=Phaser.Math.Between(-2,2),td=Math.max(1,bd+sb+v);
+        var cc=this.stats.agility*1.5,ic=Phaser.Math.Between(1,100)<=cc,fd=ic?td*2:td;
+        var ch=e.getData('health')-fd;e.setData('health',ch);
+        this.showDamageNumber(e.x,e.y-20,fd,ic,false);
+        var a=Phaser.Math.Angle.Between(this.player.x,this.player.y,e.x,e.y);e.setVelocity(Math.cos(a)*200,Math.sin(a)*200);
+        e.setTint(0xff0000);this.time.delayedCall(150,function(){if(e.active)e.clearTint();});
+        if(ch<=0)this.killEnemy(e);
+    },
+
+    killEnemy: function(e) {
+        var xp=e.getData('xpReward'),nm=e.getData('name'),self=this;this.totalKills++;
+        this.tweens.add({targets:e,alpha:0,scaleX:1.5,scaleY:1.5,duration:300,onComplete:function(){e.destroy();self.enemies=self.enemies.filter(function(x){return x!==e;});}});
+        this.gainXP(xp);this.showNotification(nm+' slain! +'+xp+' XP');
+        this.time.delayedCall(3000,function(){self.spawnEnemies(1);});
+    },
+
+    updateEnemyAI: function() {
+        var self=this,now=this.time.now;
+        this.enemyGroup.getChildren().forEach(function(e){
+            if(!e.active)return;var d=Phaser.Math.Distance.Between(self.player.x,self.player.y,e.x,e.y);
+            var ar=e.getData('aggroRange')||150,cs=e.getData('speed')||80;
+            if(d<ar){var a=Phaser.Math.Angle.Between(e.x,e.y,self.player.x,self.player.y);
+                if(e.getData('shoots')){var pd=120;
+                    if(d<pd)e.setVelocity(Math.cos(a)*-cs*0.5,Math.sin(a)*-cs*0.5);
+                    else if(d>pd+60)e.setVelocity(Math.cos(a)*cs,Math.sin(a)*cs);
+                    else{var sa=a+(Math.random()>0.5?Math.PI/2:-Math.PI/2);e.setVelocity(Math.cos(sa)*cs*0.6,Math.sin(sa)*cs*0.6);}
+                    var ls=e.getData('lastShot')||0,cd=e.getData('shootCooldown')||3000;
+                    if(now-ls>=cd){self.enemyShoot(e);e.setData('lastShot',now);}
+                }else{e.setVelocity(Math.cos(a)*cs,Math.sin(a)*cs);}}
+        });
+        this.projectileGroup.getChildren().forEach(function(p){if(!p.active)return;if(p.x<-20||p.x>820||p.y<-20||p.y>620)p.destroy();var b=p.getData('born')||0;if(now-b>4000)p.destroy();});
+    },
+
+    enemyShoot: function(e) {
+        var a=Phaser.Math.Angle.Between(e.x,e.y,this.player.x,this.player.y);
+        var tn=e.getData('projectileTexture')||'projectile_red',ps=e.getData('projectileSpeed')||100,pd=e.getData('projectileDamage')||5;
+        var p=this.projectileGroup.create(e.x,e.y,tn);p.setDepth(3);p.setData('damage',pd);p.setData('born',this.time.now);p.body.setAllowGravity(false);
+        p.setVelocity(Math.cos(a)*ps,Math.sin(a)*ps);p.setRotation(a);
+    },
+
+    spawnMedBox: function() {
+        var x=Phaser.Math.Between(100,700),y=Phaser.Math.Between(80,520);
+        var mb=this.medBoxGroup.create(x,y,'medbox');mb.setDepth(1);mb.body.setAllowGravity(false);mb.body.setImmovable(true);
+        mb.setData('healAmount',Math.floor(20+this.stats.maxHealth*0.3));
+        this.tweens.add({targets:mb,scaleX:1.2,scaleY:1.2,alpha:0.7,duration:800,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+        var self=this;this.time.delayedCall(30000,function(){if(mb.active)self.tweens.add({targets:mb,alpha:0,duration:500,onComplete:function(){mb.destroy();}});});
+    },
+
+    handleMedBoxPickup: function(p,mb) {
+        if(!mb.active)return;var ha=mb.getData('healAmount')||25,ah=Math.min(ha,this.stats.maxHealth-this.stats.health);
+        if(ah<=0)return;this.stats.health=Math.min(this.stats.health+ha,this.stats.maxHealth);
+        var mr=Math.floor(ha*0.5);this.stats.mana=Math.min(this.stats.mana+mr,this.stats.maxMana);
+        this.showNotification('+'+ah+' HP healed!');this.player.setTint(0x00ff44);
+        var self=this;this.time.delayedCall(300,function(){var rc=Phaser.Display.Color.HexStringToColor(self.race.color);self.player.setTint(rc.color);});
+        var ht=this.add.text(p.x,p.y-30,'+'+ah,{fontSize:'16px',fontFamily:'monospace',color:'#00ff44',fontStyle:'bold',stroke:'#000000',strokeThickness:3}).setOrigin(0.5).setDepth(10);
+        this.tweens.add({targets:ht,y:ht.y-40,alpha:0,duration:1000,ease:'Power2',onComplete:function(){ht.destroy();}});mb.destroy();
+    },
+
+    showDamageNumber: function(x,y,a,ic,ip) {
+        var c=ip?'#ff4444':(ic?'#ffaa00':'#ffffff'),s=ic?'20px':'14px',p=ic?'CRIT! ':'';
+        var t=this.add.text(x,y,p+'-'+a,{fontSize:s,fontFamily:'monospace',color:c,fontStyle:'bold',stroke:'#000000',strokeThickness:3}).setOrigin(0.5).setDepth(10);
+        this.tweens.add({targets:t,y:y-40,alpha:0,duration:800,ease:'Power2',onComplete:function(){t.destroy();}});
+    },
+
+    showNotification: function(m) {
+        var t=this.add.text(400,50,m,{fontSize:'16px',fontFamily:'monospace',color:'#44ff44',stroke:'#000000',strokeThickness:4}).setOrigin(0.5).setDepth(10);
+        this.tweens.add({targets:t,y:30,alpha:0,duration:2000,onComplete:function(){t.destroy();}});
+    },
+
+    drawEnemyHealthBars: function() {
+        if(this.enemyBars)this.enemyBars.clear();else this.enemyBars=this.add.graphics().setDepth(5);
+        var self=this;this.enemyGroup.getChildren().forEach(function(e){if(!e.active)return;
+            var h=e.getData('health'),mh=e.getData('maxHealth'),r=Math.max(0,h/mh),bw=30,x=e.x-bw/2,y=e.y-22;
+            self.enemyBars.fillStyle(0x333333,0.8);self.enemyBars.fillRect(x,y,bw,4);
+            self.enemyBars.fillStyle(r>0.5?0x00ff00:0xff0000,1);self.enemyBars.fillRect(x,y,bw*r,4);});
+    },
+
+    update: function() {
+        var sp=200;this.player.setVelocity(0);
+        if(this.cursors.left.isDown||this.wasd.left.isDown){this.player.setVelocityX(-sp);this.facingDirection='left';}
+        else if(this.cursors.right.isDown||this.wasd.right.isDown){this.player.setVelocityX(sp);this.facingDirection='right';}
+        if(this.cursors.up.isDown||this.wasd.up.isDown){this.player.setVelocityY(-sp);this.facingDirection='up';}
+        else if(this.cursors.down.isDown||this.wasd.down.isDown){this.player.setVelocityY(sp);this.facingDirection='down';}
+        var vx=this.player.body.velocity.x,vy=this.player.body.velocity.y;
+        if(vx!==0&&vy!==0)this.player.setVelocity(vx*0.707,vy*0.707);
+        if(this.race.name==='Troll'){this.regenTimer+=this.game.loop.delta;if(this.regenTimer>=2000){this.regenTimer=0;if(this.stats.health<this.stats.maxHealth)this.stats.health=Math.min(this.stats.health+1,this.stats.maxHealth);}}
+        this.updateEnemyAI();this.updateHUD();this.drawEnemyHealthBars();
+    }
+});
+
+var config = {
+    type: Phaser.AUTO, width: 800, height: 600,
+    scene: [SelectScene, mainScene],
+    physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+    parent: 'game'
+};
+var game = new Phaser.Game(config);
